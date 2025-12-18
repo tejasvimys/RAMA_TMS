@@ -7,7 +7,7 @@
         public decimal DonationAmt { get; set; }
         public string DonationType { get; set; } = null!;
         public string Currency { get; set; } = "USD";
-        public DateTimeOffset? DateOfDonation { get; set; }
+        public DateTime? DateOfDonation { get; set; }
 
         public string? PaymentMethod { get; set; }
         public string? PaymentReference { get; set; }

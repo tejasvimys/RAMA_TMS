@@ -24,6 +24,8 @@
         public DateTimeOffset? UpdateDate { get; set; }
         public bool IsActive { get; set; } = true;
 
+        //public string? Notes { get; set; } 
+
         public DonorMaster Donor { get; set; } = null!;
     }
 }

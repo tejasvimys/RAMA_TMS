@@ -32,11 +32,13 @@ builder.Services.AddDbContext<TMSDBContext>(options =>
 builder.Services.AddSingleton<IDonationReceiptPdfGenerator>(sp =>
 {
     var env = sp.GetRequiredService<IWebHostEnvironment>();
-    var logoPath = Path.Combine(env.WebRootPath, "images", "rama-logo.png"); // adjust
+    var logoPath = Path.Combine(env.ContentRootPath, "images", "rama_logo1.png"); // adjust
     return new DonationReceiptPdfGenerator(logoPath);
 });
 builder.Services.Configure<SmtpEmailSettings>(
-    builder.Configuration.GetSection("SmtpEmailSettings"));
+    builder.Configuration.GetSection("EmailSettingsTest"));
+//builder.Services.Configure<SmtpEmailSettings>(
+//    builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 var app = builder.Build();
