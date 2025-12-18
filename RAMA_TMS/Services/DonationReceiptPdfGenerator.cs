@@ -140,7 +140,13 @@ namespace RAMA_TMS.Services
                 col.Item().Height(10);
 
                 col.Item().Text(
-                    "Ananthaadi Rayara Matha Atlanta,Inc is a 501 ( c ) (3) registered non-profit, charitable organization and contributions to the temple are tax deductible to the extent allowed by law. No services were provided to you in return for the donation. Once again, thanks for your continued support for RAMA.")
+                    "Ananthaadi Rayara Matha Atlanta,Inc is a 501 ( c ) (3) registered non-profit, charitable organization and contributions to the matha are tax deductible to the extent allowed by law. No services were provided to you in return for the donation. Once again, thanks for your continued support for RAMA.")
+                    .FontSize(11);
+
+                col.Item().Height(10);
+
+                col.Item().Text(
+                    "Donations received in good faith are not refundable.")
                     .FontSize(11);
 
                 col.Item().Height(10);
