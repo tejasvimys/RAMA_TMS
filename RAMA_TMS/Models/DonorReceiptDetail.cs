@@ -1,4 +1,6 @@
-﻿namespace RAMA_TMS.Models
+﻿using RAMA_TMS.Models.Users;
+
+namespace RAMA_TMS.Models
 {
     public class DonorReceiptDetail
     {
@@ -15,9 +17,7 @@
         public string? PaymentReference { get; set; }
         public bool IsTaxDeductible { get; set; } = true;
         public bool IsAnonymous { get; set; } = false;
-
         public string? InternalNotes { get; set; }
-
         public string? CreatedBy { get; set; }
         public DateTimeOffset CreatedDate { get; set; }
         public string? UpdatedBy { get; set; }
@@ -27,5 +27,9 @@
         //public string? Notes { get; set; } 
 
         public DonorMaster Donor { get; set; } = null!;
+
+        public long? CollectedByUserId { get; set; }   // FK to AppUser
+
+        public AppUser? CollectedByUser { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RAMA_TMS.Models;
+using RAMA_TMS.Models.Users;
 
 namespace RAMA_TMS.Data
 {
@@ -12,12 +13,29 @@ namespace RAMA_TMS.Data
         public Microsoft.EntityFrameworkCore.DbSet<Models.DonorMaster> DonorMasters { get; set; } = null!;
         public Microsoft.EntityFrameworkCore.DbSet<Models.DonorReceiptDetail> DonorReceiptDetails { get; set; } = null!;
 
+        public DbSet<AppUser> AppUsers { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             ConfigureDonorMaster(modelBuilder);
             ConfigureDonorReceiptDetail(modelBuilder);
+
+            // NEW: AppUser + DonorReceiptDetail relationship
+            modelBuilder.Entity<AppUser>(entity =>
+            {
+                entity.HasKey(u => u.Id);
+                entity.Property(u => u.Email).IsRequired().HasMaxLength(256);
+                entity.Property(u => u.DisplayName).IsRequired().HasMaxLength(256);
+                entity.Property(u => u.Role).IsRequired().HasMaxLength(50);
+            });
+
+            modelBuilder.Entity<DonorReceiptDetail>()
+       .HasOne(d => d.CollectedByUser)
+       .WithMany(u => u.CollectedDonations)
+       .HasForeignKey(d => d.CollectedByUserId)
+       .OnDelete(DeleteBehavior.Restrict);
         }
 
         private static void ConfigureDonorMaster(ModelBuilder modelBuilder)

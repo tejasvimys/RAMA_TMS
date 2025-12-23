@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RAMA_TMS.Data;
 using RAMA_TMS.DTO;
@@ -6,6 +7,7 @@ using RAMA_TMS.Interface;
 using RAMA_TMS.Models;
 using RAMA_TMS.Models.Donations;
 using System.Globalization;
+using System.Security.Claims;
 using System.Text;
 
 namespace RAMA_TMS.Controllers
@@ -339,7 +341,7 @@ namespace RAMA_TMS.Controllers
             }
         }
 
-
+        [Authorize]
         [HttpPost("quick-with-receipt")]
         public async Task<IActionResult> CreateDonorDonationAndSendReceipt(
     [FromBody] QuickDonorAndDonationRequest request)
@@ -356,6 +358,25 @@ namespace RAMA_TMS.Controllers
 
             if (donationDto.DonationAmt <= 0)
                 return BadRequest("Donation amount must be greater than zero.");
+
+            // NEW: Validate reference number for non-cash payments
+            if (!string.Equals(donationDto.PaymentMode, "Cash", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(donationDto.ReferenceNo))
+                {
+                    return BadRequest($"Reference number is required for {donationDto.PaymentMode} payments.");
+                }
+            }
+
+            // Extract user ID from JWT
+            var userIdClaim = User.FindFirst("sub")?.Value
+                              ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            long? collectedByUserId = null;
+            if (!string.IsNullOrEmpty(userIdClaim) && long.TryParse(userIdClaim, out var userId))
+            {
+                collectedByUserId = userId;
+            }
 
             await using var tx = await _context.Database.BeginTransactionAsync();
 
@@ -405,7 +426,7 @@ namespace RAMA_TMS.Controllers
                     DonorType = donorDto.DonorType,
                     IsActive = true,
                     CreatedDate = nowUtc,
-                    CreatedBy = "quick-donation",
+                    CreatedBy = collectedByUserId.HasValue ? $"collector:{collectedByUserId}" : "quick-donation"
                 };
 
                 _context.DonorMasters.Add(donor);
@@ -427,7 +448,8 @@ namespace RAMA_TMS.Controllers
                // No = donationDto.Notes,
                 IsActive = true,
                 CreatedDate = nowUtc,
-                CreatedBy = "quick-donation",
+                CreatedBy = collectedByUserId.HasValue ? $"collector:{collectedByUserId}" : "quick-donation",
+                CollectedByUserId = collectedByUserId
             };
 
             _context.DonorReceiptDetails.Add(receipt);
@@ -516,7 +538,8 @@ namespace RAMA_TMS.Controllers
                     ReferenceNo = r.PaymentReference,
                     DonorFirstName = r.Donor.FirstName,
                     DonorLastName = r.Donor.LastName,
-                    DonorEmail = r.Donor.Email
+                    DonorEmail = r.Donor.Email,
+                     //CollectedByName = r.CollectedByUser != null ? r.CollectedByUser.DisplayName: null
                 })
                 .ToListAsync();
 
