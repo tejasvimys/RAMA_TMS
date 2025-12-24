@@ -478,4 +478,34 @@ BEGIN
     RAISE NOTICE 'AppUsers table altered successfully with authentication columns.';
 END $$;
 
+--adding 2FA related scripts
+-- Add 2FA columns to AppUsers table (adjust table name if different)
+ALTER TABLE "AppUsers" 
+ADD COLUMN IF NOT EXISTS "TwoFactorEnabled" boolean NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS "TwoFactorSecret" character varying(255),
+ADD COLUMN IF NOT EXISTS "BackupCodes" text[];
+
+-- Optional: Add comment to columns for documentation
+COMMENT ON COLUMN "AppUsers"."TwoFactorEnabled" IS 'Indicates if 2FA is enabled for this user';
+COMMENT ON COLUMN "AppUsers"."TwoFactorSecret" IS 'TOTP secret key for 2FA';
+COMMENT ON COLUMN "AppUsers"."BackupCodes" IS 'Array of backup recovery codes';
+
+-- Verify the columns were added
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'AppUsers' 
+AND column_name IN ('TwoFactorEnabled', 'TwoFactorSecret', 'BackupCodes');
+
+-- Disable 2FA for all users (or specific user by email)
+UPDATE "AppUsers" 
+SET "TwoFactorEnabled" = false,
+    "TwoFactorSecret" = NULL,
+    "BackupCodes" = NULL;
+
+-- Or disable for specific user only (replace with your email)
+UPDATE "AppUsers" 
+SET "TwoFactorEnabled" = false,
+    "TwoFactorSecret" = NULL,
+    "BackupCodes" = NULL
+WHERE "Email" = 'tejasvimys@gmail.com';
 
