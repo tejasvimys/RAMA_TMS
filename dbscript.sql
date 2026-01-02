@@ -313,3 +313,199 @@ ALTER TABLE ONLY public."DonorReceiptDetail"
 
 \unrestrict 3jfYZuNQnY3IisYZ3Gm7KjTn4zpScb9l7ZzMPcuojR1cXQY8bR6naBYj4fU5nRL
 
+-- Add 2FA columns to AppUsers table
+ALTER TABLE public."AppUsers" 
+ADD COLUMN "TwoFactorEnabled" boolean NOT NULL DEFAULT false,
+ADD COLUMN "TwoFactorSecret" character varying(255),
+ADD COLUMN "BackupCodes" text[];
+
+-- Optional: Add index for faster lookups
+CREATE INDEX IF NOT EXISTS "IX_AppUsers_Email" ON public."AppUsers" ("Email");
+
+COMMENT ON TABLE "AppUsers" IS 'Application users with authentication and authorization';
+COMMENT ON COLUMN "AppUsers"."Role" IS 'User roles: Admin, Collector, Viewer';
+COMMENT ON COLUMN "AppUsers"."IsActive" IS 'Account status - must be true to login';
+
+-- Add authentication-related columns to AppUsers table (PostgreSQL)
+
+-- Add PasswordHash column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'PasswordHash') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "PasswordHash" VARCHAR(500);
+    END IF;
+END $$;
+
+-- Add RefreshToken column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'RefreshToken') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "RefreshToken" VARCHAR(500);
+    END IF;
+END $$;
+
+-- Add RefreshTokenExpiryTime column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'RefreshTokenExpiryTime') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "RefreshTokenExpiryTime" TIMESTAMP;
+    END IF;
+END $$;
+
+-- Add LastLoginDate column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'LastLoginDate') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "LastLoginDate" TIMESTAMP;
+    END IF;
+END $$;
+
+-- Add IsActive column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'IsActive') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "IsActive" BOOLEAN NOT NULL DEFAULT TRUE;
+    END IF;
+END $$;
+
+-- Add Email column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'Email') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "Email" VARCHAR(255);
+    END IF;
+END $$;
+
+-- Add FirstName column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'FirstName') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "FirstName" VARCHAR(100);
+    END IF;
+END $$;
+
+-- Add LastName column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'LastName') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "LastName" VARCHAR(100);
+    END IF;
+END $$;
+
+-- Add PhoneNumber column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'PhoneNumber') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "PhoneNumber" VARCHAR(20);
+    END IF;
+END $$;
+
+-- Add RoleId column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'RoleId') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "RoleId" INTEGER;
+    END IF;
+END $$;
+
+-- Add CreatedDate column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'CreatedDate') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "CreatedDate" TIMESTAMP NOT NULL DEFAULT NOW();
+    END IF;
+END $$;
+
+-- Add CreatedBy column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'CreatedBy') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "CreatedBy" INTEGER;
+    END IF;
+END $$;
+
+-- Add ModifiedDate column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'ModifiedDate') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "ModifiedDate" TIMESTAMP;
+    END IF;
+END $$;
+
+-- Add ModifiedBy column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'AppUsers' AND column_name = 'ModifiedBy') THEN
+        ALTER TABLE "AppUsers" ADD COLUMN "ModifiedBy" INTEGER;
+    END IF;
+END $$;
+
+-- Create unique index on Email if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes 
+                   WHERE indexname = 'idx_appusers_email') THEN
+        CREATE UNIQUE INDEX idx_appusers_email ON "AppUsers"("Email") WHERE "Email" IS NOT NULL;
+    END IF;
+END $$;
+
+-- Create index on RefreshToken for faster lookups
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes 
+                   WHERE indexname = 'idx_appusers_refreshtoken') THEN
+        CREATE INDEX idx_appusers_refreshtoken ON "AppUsers"("RefreshToken") WHERE "RefreshToken" IS NOT NULL;
+    END IF;
+END $$;
+
+-- Print success message
+DO $$ 
+BEGIN
+    RAISE NOTICE 'AppUsers table altered successfully with authentication columns.';
+END $$;
+
+--adding 2FA related scripts
+-- Add 2FA columns to AppUsers table (adjust table name if different)
+ALTER TABLE "AppUsers" 
+ADD COLUMN IF NOT EXISTS "TwoFactorEnabled" boolean NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS "TwoFactorSecret" character varying(255),
+ADD COLUMN IF NOT EXISTS "BackupCodes" text[];
+
+-- Optional: Add comment to columns for documentation
+COMMENT ON COLUMN "AppUsers"."TwoFactorEnabled" IS 'Indicates if 2FA is enabled for this user';
+COMMENT ON COLUMN "AppUsers"."TwoFactorSecret" IS 'TOTP secret key for 2FA';
+COMMENT ON COLUMN "AppUsers"."BackupCodes" IS 'Array of backup recovery codes';
+
+-- Verify the columns were added
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'AppUsers' 
+AND column_name IN ('TwoFactorEnabled', 'TwoFactorSecret', 'BackupCodes');
+
+-- Disable 2FA for all users (or specific user by email)
+UPDATE "AppUsers" 
+SET "TwoFactorEnabled" = false,
+    "TwoFactorSecret" = NULL,
+    "BackupCodes" = NULL;
+
+-- Or disable for specific user only (replace with your email)
+UPDATE "AppUsers" 
+SET "TwoFactorEnabled" = false,
+    "TwoFactorSecret" = NULL,
+    "BackupCodes" = NULL
+WHERE "Email" = 'tejasvimys@gmail.com';
+
