@@ -16,6 +16,11 @@
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public string CreatedBy { get; set; } = "system";
 
+        // 2FA fields
+        public bool TwoFactorEnabled { get; set; } = false;
+        public string? TwoFactorSecret { get; set; }  // TOTP secret key
+        public List<string>? BackupCodes { get; set; }  // Recovery codes
+
         public ICollection<DonorReceiptDetail> CollectedDonations { get; set; } = new List<DonorReceiptDetail>();
     }
 }
