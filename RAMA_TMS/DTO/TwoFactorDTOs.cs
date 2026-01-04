@@ -33,6 +33,7 @@
     public class LoginWith2FAResponse
     {
         public bool RequiresTwoFactor { get; set; }
+        public bool Requires2FASetup { get; set; }  // NEW FIELD
         public string? TempToken { get; set; }
         public string? AppToken { get; set; }
         public string? Email { get; set; }

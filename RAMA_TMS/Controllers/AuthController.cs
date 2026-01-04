@@ -81,6 +81,7 @@ namespace RAMA_TMS.Controllers
                 return new LoginWith2FAResponse
                 {
                     RequiresTwoFactor = false,
+                    Requires2FASetup = false,
                     AppToken = null,
                     Email = appUser.Email,
                     DisplayName = appUser.DisplayName,
@@ -89,7 +90,25 @@ namespace RAMA_TMS.Controllers
                 };
             }
 
-            // Check if 2FA is enabled
+            // NEW: Check if user needs to setup 2FA for the first time
+            if (!appUser.TwoFactorEnabled)
+            {
+                // Generate temporary token for 2FA setup
+                var tempToken = GenerateTempToken(appUser.Id, appUser.Email);
+
+                return new LoginWith2FAResponse
+                {
+                    RequiresTwoFactor = false,
+                    Requires2FASetup = true,
+                    TempToken = tempToken,
+                    Email = appUser.Email,
+                    DisplayName = appUser.DisplayName,
+                    Role = appUser.Role,
+                    IsActive = true
+                };
+            }
+
+            // Check if 2FA is enabled (normal flow)
             if (appUser.TwoFactorEnabled)
             {
                 // Generate temporary token for 2FA verification
@@ -98,24 +117,15 @@ namespace RAMA_TMS.Controllers
                 return new LoginWith2FAResponse
                 {
                     RequiresTwoFactor = true,
+                    Requires2FASetup = false,
                     TempToken = tempToken,
                     Email = appUser.Email,
                     IsActive = true
                 };
             }
 
-            // No 2FA - issue regular JWT
-            var token = GenerateJwtToken(appUser);
-
-            return new LoginWith2FAResponse
-            {
-                RequiresTwoFactor = false,
-                AppToken = token,
-                Email = appUser.Email,
-                DisplayName = appUser.DisplayName,
-                Role = appUser.Role,
-                IsActive = true
-            };
+            // This should never happen if 2FA is enforced
+            return Unauthorized("2FA is required for all users.");
         }
 
         [HttpPost("verify-2fa")]
@@ -130,6 +140,8 @@ namespace RAMA_TMS.Controllers
                 return Unauthorized("Invalid or expired token. Please login again.");
 
             var appUser = await _context.AppUsers.FindAsync(userId.Value);
+            var user2fa = await _context.AppUsers
+        .FirstOrDefaultAsync(u => u.Email == request.Email);
             if (appUser == null || !appUser.TwoFactorEnabled)
                 return Unauthorized("Invalid request.");
 
@@ -167,7 +179,8 @@ namespace RAMA_TMS.Controllers
                 DisplayName = appUser.DisplayName,
                 Role = appUser.Role,
                 IsActive = true,
-                IsNewUser = false
+                IsNewUser = false,
+                TwoFactorSecret = user2fa.TwoFactorSecret
             };
         }
 
@@ -175,7 +188,20 @@ namespace RAMA_TMS.Controllers
         [HttpPost("2fa/enable")]
         public async Task<ActionResult<Enable2FAResponse>> Enable2FA([FromBody] Enable2FARequest request)
         {
+            // Try to get userId from temp token (for first-time setup) or regular token
             var userId = GetUserIdFromToken();
+
+            // If no user from regular token, try temp token
+            if (userId == null)
+            {
+                var authHeader = Request.Headers["Authorization"].ToString();
+                if (authHeader.StartsWith("Bearer "))
+                {
+                    var token = authHeader.Substring(7);
+                    userId = ValidateTempToken(token);
+                }
+            }
+
             if (userId == null)
                 return Unauthorized();
 
@@ -214,7 +240,20 @@ namespace RAMA_TMS.Controllers
         [HttpPost("2fa/verify-setup")]
         public async Task<ActionResult> Verify2FASetup([FromBody] Verify2FASetupRequest request)
         {
+            // Try to get userId from temp token or regular token
             var userId = GetUserIdFromToken();
+
+            // If no user from regular token, try temp token
+            if (userId == null)
+            {
+                var authHeader = Request.Headers["Authorization"].ToString();
+                if (authHeader.StartsWith("Bearer "))
+                {
+                    var token = authHeader.Substring(7);
+                    userId = ValidateTempToken(token);
+                }
+            }
+
             if (userId == null)
                 return Unauthorized();
 

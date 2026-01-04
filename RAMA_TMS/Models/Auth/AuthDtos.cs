@@ -14,5 +14,7 @@
         public string Role { get; set; } = null!;
         public bool IsActive { get; set; }      // true = can use app
         public bool IsNewUser { get; set; }     // true = just registered, pending approval
+
+        public string? TwoFactorSecret { get; set; }
     }
 }
