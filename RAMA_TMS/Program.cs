@@ -25,7 +25,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: CorsPolicy, policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // Vite dev URL
+        policy.WithOrigins("http://localhost:5173","http://10.0.0.29:5173", "https://app.ananthaadirayaramath.org") // Vite dev URL
               .AllowAnyHeader()
               .AllowAnyMethod();
     });

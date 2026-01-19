@@ -87,16 +87,11 @@ namespace RAMA_TMS.Controllers
         [HttpGet("donations")]
         public async Task<ActionResult<List<MobileDonationListItem>>> GetMyDonations()
         {
-            Console.WriteLine("📥 GetMyDonations endpoint called");
-
             // Get user ID from JWT token
             var userIdClaim = User.FindFirst("sub")?.Value
                 ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
-
-            Console.WriteLine($"🔑 User ID Claim: {userIdClaim}");
-            Console.WriteLine($"📧 User Email: {userEmail}");
 
             if (string.IsNullOrEmpty(userIdClaim) && string.IsNullOrEmpty(userEmail))
                 return Unauthorized("User credentials not found in token.");
@@ -109,8 +104,6 @@ namespace RAMA_TMS.Controllers
                 {
                     long.TryParse(userIdClaim, out userId);
                 }
-
-                Console.WriteLine($"👤 Parsed User ID: {userId}");
 
                 // Get ALL active donations first (for debugging)
                 var allDonations = await _context.DonorReceiptDetails
@@ -127,14 +120,7 @@ namespace RAMA_TMS.Controllers
                     })
                     .ToListAsync();
 
-                Console.WriteLine($"📊 Total active donations in DB: {allDonations.Count}");
-
-                // Log first few for debugging
-                foreach (var d in allDonations.Take(5))
-                {
-                    Console.WriteLine($"   - Receipt {d.DonorReceiptDetailId}: CreatedBy='{d.CreatedBy}', CollectedBy={d.CollectedByUserId}, Amount=${d.DonationAmt}");
-                }
-
+              
                 // Now filter for this user
                 var query = _context.DonorReceiptDetails
                     .Where(r => r.IsActive);
@@ -142,7 +128,6 @@ namespace RAMA_TMS.Controllers
                 // Try multiple matching strategies
                 if (userId > 0)
                 {
-                    Console.WriteLine($"🔍 Filtering by User ID: {userId}");
                     query = query.Where(r =>
                         r.CollectedByUserId == userId ||
                         (r.CreatedBy != null && (
@@ -153,7 +138,6 @@ namespace RAMA_TMS.Controllers
                 }
                 else if (!string.IsNullOrEmpty(userEmail))
                 {
-                    Console.WriteLine($"🔍 Filtering by Email: {userEmail}");
                     query = query.Where(r =>
                         r.CreatedBy != null && r.CreatedBy.ToLower().Contains(userEmail.ToLower())
                     );
@@ -179,13 +163,10 @@ namespace RAMA_TMS.Controllers
                     })
                     .ToListAsync();
 
-                Console.WriteLine($"✅ Returning {donations.Count} donations for user");
-
                 return Ok(donations);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error loading donations: {ex.Message}");
                 Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
                 return StatusCode(500, $"Failed to load donations: {ex.Message}");
             }
@@ -354,7 +335,6 @@ namespace RAMA_TMS.Controllers
                             var body = "Hare Srinivasa! Please find attached your donation receipt. Thank you very much for your donation! RAMA";
 
                             await _emailService.SendReceiptAsync(donor.Email, subject, body, pdfBytes);
-                            Console.WriteLine($"✅ Email sent to {donor.Email} for receipt {receipt.DonorReceiptDetailId}");
                         }
                         catch (Exception ex)
                         {
@@ -414,7 +394,6 @@ namespace RAMA_TMS.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error generating PDF: {ex.Message}");
                 return StatusCode(500, "Failed to generate PDF receipt.");
             }
         }
